@@ -36,4 +36,4 @@ Keybidings
 * __up arrow__: Increase duration
 * __down arrow__: Decrease duration
 * __space__: Toggle paused
-* __escape__: Quit YMAGE 
+* __escape__: Exit ymage 
