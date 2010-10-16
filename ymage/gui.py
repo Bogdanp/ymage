@@ -122,6 +122,8 @@ class Slideshow(window.Window):
     def update_random_index(self):
         self.index = randint(0, len(self.paths) - 1)
 
+        self.update_index_by(None, 0)
+
     def toggle_fullscreen(self):
         self.set_mouse_visible(self.fullscreen)
         self.set_fullscreen(not self.fullscreen)

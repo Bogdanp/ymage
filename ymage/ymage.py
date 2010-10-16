@@ -26,7 +26,7 @@ from pyglet import app
 def parse_options():
     parser = OptionParser(
         usage="usage: %prog [OPTIONS] PATH",
-        version="%prog 0.1"
+        version="%prog 0.2"
     )
     parser.add_option(
         "-d", "--duration",
