@@ -1,6 +1,6 @@
 ymage
 -----
-ymage is a simple image slideshow creator written in python.
+ymage is a simple image slideshow creator written in Python.
 
 Requirements
 ------------
@@ -23,8 +23,8 @@ Screenshots
 Sample usage
 ------------
 * Start in windowed mode: `ymage -w /path/to/your/pictures/folder`
-* Start at the 10th slide: `ymage -i 10 /Path/to/your/pictures/folder`
-* Start in windowed mode with a 20 second duration per slide: `ymage -w -d 20 /Path/to/your/pictures/folder`
+* Start at the 10th slide: `ymage -i 10 /path/to/your/pictures/folder`
+* Start in windowed mode with a 20 second duration per slide: `ymage -w -d 20 /path/to/your/pictures/folder`
 
 Keybidings
 ----------
