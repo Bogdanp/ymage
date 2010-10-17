@@ -28,6 +28,7 @@ Sample usage
 
 Keybidings
 ----------
+* __/__: Search for a certain image (searches through the paths for your query)
 * __d__: Set delay
 * __f__: Toggle fullscreen mode
 * __i__: Jump to a slide
