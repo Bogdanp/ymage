@@ -32,6 +32,8 @@ def get_paths(path):
             for _type in types:
                 if _file.lower().endswith(_type):
                     paths.append(os.path.join(root, _file))
+                    # Should save some cycles
+                    break
 
     return sorted(paths)
 
@@ -91,5 +93,3 @@ def main():
         open(options.save_file, "w").write(str(slideshow.index))
     except IOError:
         pass
-
-    return 0
