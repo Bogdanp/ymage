@@ -47,26 +47,82 @@ class Printer(text.Label):
     def clear(self, dt=None):
         self.text = ""
 
+class Reader(object):
+    def __init__(self, printer):
+        self.is_reading = False
+        self.callback = None
+        self.printer = printer
+        self.message = ""
+        self._input = ""
+
+    def read(self, symbol):
+        self.is_reading = True
+
+        if symbol == window.key.RETURN:
+            self.printer.clear()
+            self.toggle_reading()
+            self.callback(self._input)
+            return
+
+        if symbol == window.key.ESCAPE:
+            self.printer.clear()
+            self.toggle_reading()
+            return
+
+        if symbol == window.key.BACKSPACE:
+            self._input = self._input[:-1]
+
+        try:
+            self._input += {
+                window.key._1: "1",
+                window.key._2: "2",
+                window.key._3: "3",
+                window.key._4: "4",
+                window.key._5: "5",
+                window.key._6: "6",
+                window.key._7: "7",
+                window.key._8: "8",
+                window.key._9: "9",
+                window.key._0: "0",
+                window.key.NUM_1: "1",
+                window.key.NUM_2: "2",
+                window.key.NUM_3: "3",
+                window.key.NUM_4: "4",
+                window.key.NUM_5: "5",
+                window.key.NUM_6: "6",
+                window.key.NUM_7: "7",
+                window.key.NUM_8: "8",
+                window.key.NUM_9: "9",
+                window.key.NUM_0: "0",
+                window.key.PERIOD: ".",
+            }[symbol]
+        except KeyError:
+            pass
+
+        self.printer._print(self.message + self._input + "_")
+
+    def start_reading(self, message, callback):
+        self.callback = callback
+        self.message = message
+        self._input = ""
+
+        self.printer._print(self.message + "_")
+        self.toggle_reading()
+
+    def toggle_reading(self):
+        self.is_reading = not self.is_reading
+
 class Slideshow(window.Window):
     def __init__(self, options):
         super(Slideshow, self).__init__(
-            fullscreen=False,
-            resizable=True,
+            fullscreen=False, resizable=True,
         )
 
-        if not options.windowed:
-            self.toggle_fullscreen()
-
-        if options.last_index:
-            try:
-                self.index = int(open(options.save_file).read())
-            except IOError:
-                self.index = 0
-        else:
-            self.index = int(options.index) - 1
+        self.setup_defaults(options)
 
         self.duration = float(options.duration)
         self.printer = Printer()
+        self.reader = Reader(self.printer)
         self.paused = False
         self.paths = options.paths
         self.slide = image.load(self.paths[self.index])
@@ -96,8 +152,26 @@ class Slideshow(window.Window):
     def print_current_path(self):
         self.printer._print(self.paths[self.index])
 
+    def setup_defaults(self, options):
+        if not options.windowed:
+            self.toggle_fullscreen()
+
+        if options.last_index:
+            try:
+                self.index = int(open(options.save_file).read())
+            except IOError:
+                self.index = 0
+        else:
+            self.index = int(options.index) - 1
+
     def update_caption(self):
         self.set_caption("ymage [%d/%d]" % (self.index + 1, len(self.paths)))
+
+    def update_duration(self, n=None):
+        if not n:
+            self.reader.start_reading("Duration: ", self.update_duration)
+        else:
+            self.duration = float(n)
 
     def update_duration_by(self, n):
         self.duration += n
@@ -105,18 +179,31 @@ class Slideshow(window.Window):
         self.printer._print("Duration: %.1f" % self.duration)
         reschedule(self.update_index_by, self.duration, 1)
 
+    def update_index(self, n=None):
+        if not n:
+            self.reader.start_reading("Jump to slide: ", self.update_index)
+        else:
+            n = n.replace(".", "")
+            self.old_index = self.index
+            self.index = int(n) - 1
+
+            try:
+                self.update_index_by(None, 0)
+            except IndexError:
+                self.index = self.old_index
+                self.update_index_by(None, 0)
+
     def update_index_by(self, dt=None, n=1):
         if not self.paused or dt is None:
             self.index += n
 
-        if self.index > len(self.paths) - 1:
-            self.index = self.index - len(self.paths)
-        elif self.index < 0:
-            self.index = len(self.paths) - self.index - 2
+            if self.index > len(self.paths) - 1:
+                self.index = self.index - len(self.paths)
+            if self.index < 0:
+                self.index = len(self.paths) - self.index - 2
 
         self.slide = image.load(self.paths[self.index])
 
-        self.printer.clear()
         self.update_caption()
         reschedule(self.update_index_by, self.duration)
 
@@ -126,6 +213,7 @@ class Slideshow(window.Window):
         self.update_index_by(None, 0)
 
     def toggle_fullscreen(self):
+        self.activate()
         self.set_mouse_visible(self.fullscreen)
         self.set_fullscreen(not self.fullscreen)
 
@@ -150,11 +238,17 @@ class Slideshow(window.Window):
         self.printer.draw()
 
     def on_key_press(self, symbol, modifiers):
+        if self.reader.is_reading:
+            self.reader.read(symbol)
+            return
+
         try:
             {
+                window.key.D: self.update_duration,
                 window.key.F: self.toggle_fullscreen,
-                window.key.R: self.update_random_index,
+                window.key.I: self.update_index,
                 window.key.P: self.print_current_path,
+                window.key.R: self.update_random_index,
                 window.key.LEFT: lambda: self.update_index_by(None, -1),
                 window.key.RIGHT: lambda: self.update_index_by(None, 1),
                 window.key.UP: lambda: self.update_duration_by(0.5),

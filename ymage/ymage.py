@@ -40,7 +40,7 @@ def get_paths(path):
 def parse_options():
     parser = OptionParser(
         usage="usage: %prog [OPTIONS] PATH",
-        version="%prog 0.3"
+        version="%prog 0.4"
     )
     parser.add_option(
         "-d", "--duration",
