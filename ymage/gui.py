@@ -21,6 +21,9 @@ from __future__ import division
 from pyglet import app, clock, gl, image, text, window
 from random import randint
 
+# List of numbers from 0 to 9 and letters from A to Z
+ALPHANUM = [chr(c) for c in range(48, 58)] + [chr(c) for c in range(65, 91)]
+
 def reschedule(callback, interval, *args):
     clock.unschedule(callback)
     clock.schedule_interval(callback, interval, *args)
@@ -55,7 +58,7 @@ class Reader(object):
         self.message = ""
         self._input = ""
 
-    def read(self, symbol):
+    def read(self, symbol, modifiers):
         self.is_reading = True
 
         if symbol == window.key.RETURN:
@@ -63,41 +66,30 @@ class Reader(object):
             self.toggle_reading()
             self.callback(self._input)
             return
-
-        if symbol == window.key.ESCAPE:
+        elif symbol == window.key.ESCAPE:
             self.printer.clear()
             self.toggle_reading()
             return
-
-        if symbol == window.key.BACKSPACE:
+        elif symbol == window.key.BACKSPACE:
             self._input = self._input[:-1]
 
         try:
             self._input += {
-                window.key._1: "1",
-                window.key._2: "2",
-                window.key._3: "3",
-                window.key._4: "4",
-                window.key._5: "5",
-                window.key._6: "6",
-                window.key._7: "7",
-                window.key._8: "8",
-                window.key._9: "9",
-                window.key._0: "0",
-                window.key.NUM_1: "1",
-                window.key.NUM_2: "2",
-                window.key.NUM_3: "3",
-                window.key.NUM_4: "4",
-                window.key.NUM_5: "5",
-                window.key.NUM_6: "6",
-                window.key.NUM_7: "7",
-                window.key.NUM_8: "8",
-                window.key.NUM_9: "9",
-                window.key.NUM_0: "0",
+                window.key.MINUS: "-",
                 window.key.PERIOD: ".",
+                window.key.SPACE: " ",
             }[symbol]
         except KeyError:
             pass
+
+        representation = window.key.symbol_string(symbol)
+        representation = representation.replace("_", "")
+
+        if representation in ALPHANUM:
+            if modifiers & window.key.MOD_SHIFT:
+                self._input += representation
+            else:
+                self._input += representation.lower()
 
         self.printer._print(self.message + self._input + "_")
 
@@ -171,7 +163,11 @@ class Slideshow(window.Window):
         if not n:
             self.reader.start_reading("Duration: ", self.update_duration)
         else:
-            self.duration = float(n)
+            try:
+                old_duration = self.duration
+                self.duration = float(n)
+            except ValueError:
+                self.duration = old_duration
 
     def update_duration_by(self, n):
         self.duration += n
@@ -183,14 +179,12 @@ class Slideshow(window.Window):
         if not n:
             self.reader.start_reading("Jump to slide: ", self.update_index)
         else:
-            n = n.replace(".", "")
-            self.old_index = self.index
-            self.index = int(n) - 1
-
             try:
+                old_index = self.index
+                self.index = int(n) - 1
                 self.update_index_by(None, 0)
-            except IndexError:
-                self.index = self.old_index
+            except (IndexError, ValueError):
+                self.index = old_index
                 self.update_index_by(None, 0)
 
     def update_index_by(self, dt=None, n=1):
@@ -199,7 +193,7 @@ class Slideshow(window.Window):
 
             if self.index > len(self.paths) - 1:
                 self.index = self.index - len(self.paths)
-            if self.index < 0:
+            elif self.index < 0:
                 self.index = len(self.paths) - self.index - 2
 
         self.slide = image.load(self.paths[self.index])
@@ -211,6 +205,16 @@ class Slideshow(window.Window):
         self.index = randint(0, len(self.paths) - 1)
 
         self.update_index_by(None, 0)
+
+    def search(self, query=None):
+        if not query:
+            self.reader.start_reading("Search for image: ", self.search)
+        else:
+            for i, path in enumerate(self.paths):
+                if path.lower().find(query.lower()) != -1:
+                    self.index = i
+                    self.update_index_by(None, 0)
+                    break
 
     def toggle_fullscreen(self):
         self.activate()
@@ -239,7 +243,7 @@ class Slideshow(window.Window):
 
     def on_key_press(self, symbol, modifiers):
         if self.reader.is_reading:
-            self.reader.read(symbol)
+            self.reader.read(symbol, modifiers)
             return
 
         try:
@@ -249,6 +253,7 @@ class Slideshow(window.Window):
                 window.key.I: self.update_index,
                 window.key.P: self.print_current_path,
                 window.key.R: self.update_random_index,
+                window.key.SLASH: self.search,
                 window.key.LEFT: lambda: self.update_index_by(None, -1),
                 window.key.RIGHT: lambda: self.update_index_by(None, 1),
                 window.key.UP: lambda: self.update_duration_by(0.5),
