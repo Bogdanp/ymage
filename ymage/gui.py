@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 from __future__ import division
-from pyglet import app, clock, image, text, window
+from pyglet import app, clock, gl, image, text, window
 from random import randint
 
 def reschedule(callback, interval, *args):
@@ -48,7 +48,7 @@ class Printer(text.Label):
         self.text = ""
 
 class Slideshow(window.Window):
-    def __init__(self, options, paths):
+    def __init__(self, options):
         super(Slideshow, self).__init__(
             fullscreen=False,
             resizable=True,
@@ -68,9 +68,10 @@ class Slideshow(window.Window):
         self.duration = float(options.duration)
         self.printer = Printer()
         self.paused = False
-        self.paths = paths
-        self.slide = image.load(paths[self.index])
+        self.paths = options.paths
+        self.slide = image.load(self.paths[self.index])
 
+        self.update_caption()
         reschedule(self.update_index_by, self.duration)
 
     def draw_slide(self):
@@ -111,7 +112,7 @@ class Slideshow(window.Window):
         if self.index > len(self.paths) - 1:
             self.index = self.index - len(self.paths)
         elif self.index < 0:
-            self.index = len(self.paths) - 2 - self.index
+            self.index = len(self.paths) - self.index - 2
 
         self.slide = image.load(self.paths[self.index])
 
@@ -138,7 +139,14 @@ class Slideshow(window.Window):
 
     def on_draw(self):
         self.clear()
-        self.draw_slide()
+
+        try:
+            self.draw_slide()
+        except gl.lib.GLException:
+            # In case one of the slides is corrupted
+            # move on to the next
+            self.update_index_by(None, 1)
+
         self.printer.draw()
 
     def on_key_press(self, symbol, modifiers):

@@ -23,10 +23,23 @@ from gui import Slideshow
 from optparse import OptionParser
 from pyglet import app
 
+def get_paths(path):
+    types = ["bmp", "jpg", "jpeg", "png"]
+    paths = []
+
+    for root, dirs, files in os.walk(path):
+        for _file in files:
+            # Ugly hack (implicit rather than explicit)
+            # but it's faster so that makes it fine, right? RIGHT?
+            if sum(1 for _type in types if _file.lower().endswith(_type)):
+                paths.append(os.path.join(root, _file))
+
+    return sorted(paths)
+
 def parse_options():
     parser = OptionParser(
         usage="usage: %prog [OPTIONS] PATH",
-        version="%prog 0.2"
+        version="%prog 0.3"
     )
     parser.add_option(
         "-d", "--duration",
@@ -62,24 +75,16 @@ def parse_options():
     except IndexError:
         parser.error("you must specify a PATH")
 
+    options.paths = get_paths(options.path)
+
+    if not options.paths:
+        parser.error("PATH contains no images")
+
     return options
-
-def get_paths(path):
-    types = ["bmp", "jpg", "jpeg", "png"]
-    paths = []
-
-    for root, dirs, files in os.walk(path):
-        for _file in files:
-            for _type in types:
-                if _file.endswith(_type):
-                    paths.append(os.path.join(root, _file))
-
-    return sorted(paths)
 
 def main():
     options = parse_options()
-    paths = get_paths(options.path)
-    slideshow = Slideshow(options, paths)
+    slideshow = Slideshow(options)
 
     app.run()
 

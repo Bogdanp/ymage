@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="ymage",
-    version="0.2",
+    version="0.3",
     description="Simple slideshow creator",
     author="Bogdan Popa",
     author_email="popa.bogdanp@gmail.com",
