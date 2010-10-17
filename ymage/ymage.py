@@ -29,10 +29,9 @@ def get_paths(path):
 
     for root, dirs, files in os.walk(path):
         for _file in files:
-            # Ugly hack (implicit rather than explicit)
-            # but it's faster so that makes it fine, right? RIGHT?
-            if sum(1 for _type in types if _file.lower().endswith(_type)):
-                paths.append(os.path.join(root, _file))
+            for _type in types:
+                if _file.lower().endswith(_type):
+                    paths.append(os.path.join(root, _file))
 
     return sorted(paths)
 
