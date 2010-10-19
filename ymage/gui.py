@@ -21,16 +21,16 @@ from __future__ import division
 from pyglet import app, clock, gl, image, text, window
 from random import randint
 
-# List of numbers from 0 to 9 and letters from A to Z
+# List of characters from 0 to 9 and A to Z
 ALPHANUM = [chr(c) for c in range(48, 58)] + [chr(c) for c in range(65, 91)]
 
-def reschedule(callback, interval, *args):
+def reschedule(callback, interval, *args, **kwargs):
     clock.unschedule(callback)
-    clock.schedule_interval(callback, interval, *args)
+    clock.schedule_interval(callback, interval, *args, **kwargs)
 
-def reschedule_once(callback, interval, *args):
+def reschedule_once(callback, interval, *args, **kwargs):
     clock.unschedule(callback)
-    clock.schedule_once(callback, interval, *args)
+    clock.schedule_once(callback, interval, *args, **kwargs)
 
 class Printer(text.Label):
     def __init__(self):
@@ -182,10 +182,10 @@ class Slideshow(window.Window):
             try:
                 old_index = self.index
                 self.index = int(n) - 1
-                self.update_index_by(None, 0)
+                self.update_index_by(n=0)
             except (IndexError, ValueError):
                 self.index = old_index
-                self.update_index_by(None, 0)
+                self.update_index_by(n=0)
 
     def update_index_by(self, dt=None, n=1):
         if not self.paused or dt is None:
@@ -204,16 +204,26 @@ class Slideshow(window.Window):
     def update_random_index(self):
         self.index = randint(0, len(self.paths) - 1)
 
-        self.update_index_by(None, 0)
+        self.update_index_by(n=0)
 
-    def search(self, query=None):
+    def search_backward(self, query=None):
         if not query:
-            self.reader.start_reading("Search for image: ", self.search)
+            self.reader.start_reading("Search backward for image: ", self.search_backward)
         else:
-            for i, path in enumerate(self.paths):
+            for i, path in enumerate(self.paths[:self.index]):
                 if path.lower().find(query.lower()) != -1:
                     self.index = i
-                    self.update_index_by(None, 0)
+                    self.update_index_by(n=0)
+                    break
+
+    def search_forward(self, query=None):
+        if not query:
+            self.reader.start_reading("Search forward for image: ", self.search_forward)
+        else:
+            for i, path in enumerate(self.paths[self.index:], self.index):
+                if path.lower().find(query.lower()) != -1:
+                    self.index = i
+                    self.update_index_by(n=0)
                     break
 
     def toggle_fullscreen(self):
@@ -237,7 +247,7 @@ class Slideshow(window.Window):
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next
-            self.update_index_by(None, 1)
+            self.update_index_by(n=1)
 
         self.printer.draw()
 
@@ -253,13 +263,14 @@ class Slideshow(window.Window):
                 window.key.I: self.update_index,
                 window.key.P: self.print_current_path,
                 window.key.R: self.update_random_index,
-                window.key.SLASH: self.search,
-                window.key.LEFT: lambda: self.update_index_by(None, -1),
-                window.key.RIGHT: lambda: self.update_index_by(None, 1),
+                window.key.LEFT: lambda: self.update_index_by(n=-1),
+                window.key.RIGHT: lambda: self.update_index_by(n=1),
                 window.key.UP: lambda: self.update_duration_by(0.5),
                 window.key.DOWN: lambda: self.update_duration_by(-0.5),
+                window.key.QUESTION: self.search_backward,
+                window.key.SLASH: self.search_forward,
                 window.key.SPACE: self.toggle_paused,
-                window.key.ESCAPE: app.exit
+                window.key.ESCAPE: app.exit,
             }[symbol]()
         except KeyError:
             pass
