@@ -30,7 +30,7 @@ Keybidings
 ----------
 * __/__: Search forward for a certain image (searches through the paths for your query)
 * __?__: Search backward for a certain image (searches through the paths for your query)
-* __d__: Set delay
+* __d__: Set duration 
 * __f__: Toggle fullscreen mode
 * __i__: Jump to a slide
 * __p__: Print the path of the current image 
