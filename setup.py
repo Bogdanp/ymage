@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name="ymage",
-    version="0.6",
+    version="0.7",
     description="Simple slideshow creator",
     author="Bogdan Popa",
     author_email="popa.bogdanp@gmail.com",
@@ -20,10 +20,7 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python"
     ],
-    install_requires=[
-        "pyglet>=1.1"
-    ],
-    entry_points={
-        "console_scripts": ["ymage = ymage.ymage:main"]
-    }
+    scripts=[
+        "scripts/ymage"
+    ]
 )

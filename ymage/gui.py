@@ -112,6 +112,8 @@ class Slideshow(window.Window):
 
         self.setup_defaults(options)
 
+        self.random_cache = []
+        self.rc_position = 0
         self.duration = float(options.duration)
         self.printer = Printer()
         self.reader = Reader(self.printer)
@@ -137,8 +139,8 @@ class Slideshow(window.Window):
         padding_top = (self.height - slide_height) / 2
 
         self.slide.blit(
-            padding_left, padding_top,
-            width=slide_width, height=slide_height
+            padding_left, padding_top, 0,
+            slide_width, slide_height
         )
 
     def print_current_path(self):
@@ -201,8 +203,24 @@ class Slideshow(window.Window):
         self.update_caption()
         reschedule(self.update_index_by, self.duration)
 
-    def update_random_index(self):
-        self.index = randint(0, len(self.paths) - 1)
+    def update_random_index(self, prev=False):
+        if prev:
+            try:
+                self.rc_position -= 1
+                self.index = self.random_cache[self.rc_position]
+
+                if self.rc_position < 0:
+                    self.rc_position = len(self.random_cache) - 1
+            except IndexError:
+                pass
+        else:
+            self.index = randint(0, len(self.paths) - 1)
+            self.random_cache.append(self.index)
+
+            if len(self.random_cache) > 50:
+                self.random_cache.pop(0)
+
+            self.rc_position = len(self.random_cache) - 1
 
         self.update_index_by(n=0)
 
@@ -263,6 +281,7 @@ class Slideshow(window.Window):
                 window.key.I: self.update_index,
                 window.key.P: self.print_current_path,
                 window.key.R: self.update_random_index,
+                window.key.E: lambda: self.update_random_index(True),
                 window.key.LEFT: lambda: self.update_index_by(n=-1),
                 window.key.RIGHT: lambda: self.update_index_by(n=1),
                 window.key.UP: lambda: self.update_duration_by(0.5),
