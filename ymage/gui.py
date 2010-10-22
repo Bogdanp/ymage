@@ -34,17 +34,14 @@ def reschedule_once(callback, interval, *args, **kwargs):
 
 class Printer(text.Label):
     def __init__(self):
-        super(Printer, self).__init__()
-
-        self.font_name = "Arial"
-        self.font_size = 12
-        self.color = (0, 255, 0, 255)
-        self.x = 10
-        self.y = 10
+        super(Printer, self).__init__(
+            font_name="Arial", font_size=12,
+            color=(0, 255, 0, 255),
+            x=10, y=10,
+        )
 
     def _print(self, message, duration=5):
         self.text = message
-
         reschedule_once(self.clear, duration)
 
     def clear(self, dt=None):
@@ -56,7 +53,7 @@ class Reader(object):
         self.callback = None
         self.printer = printer
         self.message = ""
-        self._input = ""
+        self.input = ""
 
     def read(self, symbol, modifiers):
         self.is_reading = True
@@ -64,17 +61,17 @@ class Reader(object):
         if symbol == window.key.RETURN:
             self.printer.clear()
             self.toggle_reading()
-            self.callback(self._input)
+            self.callback(self.input)
             return
         elif symbol == window.key.ESCAPE:
             self.printer.clear()
             self.toggle_reading()
             return
         elif symbol == window.key.BACKSPACE:
-            self._input = self._input[:-1]
+            self.input = self.input[:-1]
 
         try:
-            self._input += {
+            self.input += {
                 window.key.MINUS: "-",
                 window.key.PERIOD: ".",
                 window.key.SPACE: " ",
@@ -87,186 +84,190 @@ class Reader(object):
 
         if representation in ALPHANUM:
             if modifiers & window.key.MOD_SHIFT:
-                self._input += representation
+                self.input += representation
             else:
-                self._input += representation.lower()
+                self.input += representation.lower()
 
-        self.printer._print(self.message + self._input + "_")
+        self.printer._print(self.message + self.input + "_")
 
     def start_reading(self, message, callback):
         self.callback = callback
         self.message = message
-        self._input = ""
-
+        self.input = ""
         self.printer._print(self.message + "_")
         self.toggle_reading()
 
     def toggle_reading(self):
         self.is_reading = not self.is_reading
 
-class Slideshow(window.Window):
+class Slide(object):
+    def __init__(self, path):
+        self.image = None
+        self.path = path
+
+    def draw(self, window_width, window_height):
+        if self.image is None:
+            self.image = image.load(self.path)
+
+        image_ratio = self.image.width / self.image.height
+        window_ratio = window_width / window_height
+
+        if image_ratio > window_ratio:
+            image_height = window_width / image_ratio
+            image_width = window_width
+        else:
+            image_height = window_height
+            image_width = window_height * image_ratio
+
+        padding_left = (window_width - image_width) / 2
+        padding_bottom = (window_height - image_height) / 2
+
+        self.image.blit(
+            padding_left, padding_bottom, 0,
+            image_width, image_height
+        )
+
+class Slideshow(object):
     def __init__(self, options):
-        super(Slideshow, self).__init__(
+        self.options = options
+        self.slides = []
+        self.setup()
+        self.display(action="none")
+
+    def setup(self):
+        for path in self.options.paths:
+            self.slides.append(Slide(path))
+
+        if self.options.last_index:
+            try:
+                self.index = int(open(self.options.save_file).read())
+            except (IOError, ValueError):
+                self.index = 0
+        else:
+            self.index = self.options.index
+
+        self.options.duration = float(self.options.duration)
+        self.options.paused = False
+        self.randoms = []
+        self.rindex = 0
+
+    def get_current(self):
+        return self.slides[self.index]
+
+    def decrease_duration(self):
+        self.options.duration -= 0.5
+
+        if self.options.duration < 0:
+            self.options.duration = 0
+
+        self.display(action="none")
+
+    def increase_duration(self):
+        self.options.duration += 0.5
+        self.display(action="none")
+
+    def set_duration(self, n):
+        self.options.duration = abs(n)
+        self.display(action="none")
+
+    def toggle_paused(self):
+        self.options.paused = not self.options.paused
+
+    def prev(self):
+        self.index -= 1
+
+        if self.index < 0:
+            self.index = len(self.slides) - 1
+
+    def next(self):
+        self.index += 1
+
+        if self.index >= len(self.slides):
+            self.index = 0
+
+    def jump(self, index):
+        index -= 1
+
+        if index > 0 and index < len(self.slides):
+            self.index = index
+
+    def search(self, query, direction):
+        start = {
+            "backward": 0,
+            "forward": self.index,
+        }[direction]
+
+        for i, slide in enumerate(self.slides[start:], start):
+            if slide.path.lower().find(query) != -1:
+                self.index = i
+                return
+
+    def random(self, previous):
+        if previous:
+            self.rindex -= 1
+
+            if self.rindex < 0:
+                self.rindex = len(self.randoms) - 1
+        else:
+            self.rindex = len(self.randoms)
+            self.randoms.append(random.randint(0, len(self.slides)))
+
+        try:
+            self.index = self.randoms[self.rindex]
+        except IndexError:
+            pass
+
+    def display(self, dt=None, action="next", *args, **kwargs):
+        if not self.options.paused or dt is None:
+            # dt == None => we got here by way of
+            # a key press and not the clock so it's
+            # okay to switch to a different slide
+            {
+                "prev": self.prev,
+                "next": self.next,
+                "jump": lambda: self.jump(kwargs["index"]),
+                "none": lambda: None,
+                "random": lambda: self.random(kwargs["previous"]),
+                "search": lambda: self.search(kwargs["query"], kwargs["direction"]),
+            }[action]()
+
+        reschedule(self.display, self.options.duration)
+
+class Window(window.Window):
+    def __init__(self, options):
+        super(Window, self).__init__(
             fullscreen=False, resizable=True,
         )
 
-        self.setup_defaults(options)
-
-        self.random_cache = []
-        self.rc_position = 0
-        self.duration = float(options.duration)
+        self.slideshow = Slideshow(options)
+        self.options = options
         self.printer = Printer()
         self.reader = Reader(self.printer)
-        self.paused = False
-        self.paths = options.paths
-        self.slide = image.load(self.paths[self.index])
+        self.setup()
 
-        self.update_caption()
-        reschedule(self.update_index_by, self.duration)
-
-    def draw_slide(self):
-        slide_ratio = self.slide.width / self.slide.height
-        screen_ratio = self.screen.width / self.screen.height
-
-        if slide_ratio > screen_ratio:
-            slide_width = self.width
-            slide_height = self.width / slide_ratio
-        else:
-            slide_height = self.height
-            slide_width = self.height * slide_ratio
-
-        padding_left = (self.width - slide_width) / 2
-        padding_top = (self.height - slide_height) / 2
-
-        self.slide.blit(
-            padding_left, padding_top, 0,
-            slide_width, slide_height
-        )
-
-    def print_current_path(self):
-        self.printer._print(self.paths[self.index])
-
-    def setup_defaults(self, options):
-        if not options.windowed:
+    def setup(self):
+        if not self.options.windowed:
             self.toggle_fullscreen()
-
-        if options.last_index:
-            try:
-                self.index = int(open(options.save_file).read())
-            except IOError:
-                self.index = 0
-        else:
-            self.index = int(options.index) - 1
-
-    def update_caption(self):
-        self.set_caption("ymage [%d/%d]" % (self.index + 1, len(self.paths)))
-
-    def update_duration(self, n=None):
-        if not n:
-            self.reader.start_reading("Duration: ", self.update_duration)
-        else:
-            try:
-                old_duration = self.duration
-                self.duration = float(n)
-            except ValueError:
-                self.duration = old_duration
-
-    def update_duration_by(self, n):
-        self.duration += n
-
-        self.printer._print("Duration: %.1f" % self.duration)
-        reschedule(self.update_index_by, self.duration, 1)
-
-    def update_index(self, n=None):
-        if not n:
-            self.reader.start_reading("Jump to slide: ", self.update_index)
-        else:
-            try:
-                old_index = self.index
-                self.index = int(n) - 1
-                self.update_index_by(n=0)
-            except (IndexError, ValueError):
-                self.index = old_index
-                self.update_index_by(n=0)
-
-    def update_index_by(self, dt=None, n=1):
-        if not self.paused or dt is None:
-            self.index += n
-
-            if self.index > len(self.paths) - 1:
-                self.index = self.index - len(self.paths)
-            elif self.index < 0:
-                self.index = len(self.paths) - self.index - 2
-
-        self.slide = image.load(self.paths[self.index])
-
-        self.update_caption()
-        reschedule(self.update_index_by, self.duration)
-
-    def update_random_index(self, prev=False):
-        if prev:
-            try:
-                self.rc_position -= 1
-                self.index = self.random_cache[self.rc_position]
-
-                if self.rc_position < 0:
-                    self.rc_position = len(self.random_cache) - 1
-            except IndexError:
-                pass
-        else:
-            self.index = randint(0, len(self.paths) - 1)
-            self.random_cache.append(self.index)
-
-            if len(self.random_cache) > 50:
-                self.random_cache.pop(0)
-
-            self.rc_position = len(self.random_cache) - 1
-
-        self.update_index_by(n=0)
-
-    def search_backward(self, query=None):
-        if not query:
-            self.reader.start_reading("Search backward for image: ", self.search_backward)
-        else:
-            for i, path in enumerate(self.paths[:self.index]):
-                if path.lower().find(query.lower()) != -1:
-                    self.index = i
-                    self.update_index_by(n=0)
-                    break
-
-    def search_forward(self, query=None):
-        if not query:
-            self.reader.start_reading("Search forward for image: ", self.search_forward)
-        else:
-            for i, path in enumerate(self.paths[self.index:], self.index):
-                if path.lower().find(query.lower()) != -1:
-                    self.index = i
-                    self.update_index_by(n=0)
-                    break
 
     def toggle_fullscreen(self):
         self.activate()
         self.set_mouse_visible(self.fullscreen)
         self.set_fullscreen(not self.fullscreen)
 
-    def toggle_paused(self):
-        self.paused = not self.paused
-
-        if self.paused:
-            self.printer._print("Paused")
-        else:
-            self.printer._print("Unpaused")
+    def update_caption(self):
+        pass
 
     def on_draw(self):
         self.clear()
 
         try:
-            self.draw_slide()
+            self.slideshow.get_current().draw(self.width, self.height)
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next
-            self.update_index_by(n=1)
+            self.slideshow.display()
 
+        self.update_caption()
         self.printer.draw()
 
     def on_key_press(self, symbol, modifiers):
@@ -276,19 +277,19 @@ class Slideshow(window.Window):
 
         try:
             {
-                window.key.D: self.update_duration,
+                window.key.D: lambda: self.reader.read("Duration: ", self.slideshow.set_duration),
+                window.key.I: lambda: self.reader.read("Index: ", self.slideshow.jump),
+                window.key.P: lambda: self.printer._print(self.slideshow.get_current().path),
+                window.key.R: lambda: self.slideshow.display(action="random", previous=False),
+                window.key.E: lambda: self.slideshow.display(action="random", previous=True),
+                window.key.LEFT: lambda: self.slideshow.display(action="previous"),
+                window.key.RIGHT: lambda: self.slideshow.display(action="next"),
+                window.key.SLASH: lambda: self.slideshow.display(action="search", direction="forward"),
+                window.key.QUESTION: lambda: self.slideshow.display(action="search", direction="backward"),
                 window.key.F: self.toggle_fullscreen,
-                window.key.I: self.update_index,
-                window.key.P: self.print_current_path,
-                window.key.R: self.update_random_index,
-                window.key.E: lambda: self.update_random_index(True),
-                window.key.LEFT: lambda: self.update_index_by(n=-1),
-                window.key.RIGHT: lambda: self.update_index_by(n=1),
-                window.key.UP: lambda: self.update_duration_by(0.5),
-                window.key.DOWN: lambda: self.update_duration_by(-0.5),
-                window.key.QUESTION: self.search_backward,
-                window.key.SLASH: self.search_forward,
-                window.key.SPACE: self.toggle_paused,
+                window.key.UP: self.slideshow.increase_duration,
+                window.key.DOWN: self.slideshow.decrease_duration,
+                window.key.SPACE: self.slideshow.toggle_paused,
                 window.key.ESCAPE: app.exit,
             }[symbol]()
         except KeyError:

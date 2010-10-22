@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 import os
 
-from gui import Slideshow
+from gui import Window
 from optparse import OptionParser
 from pyglet import app
 
@@ -85,11 +85,11 @@ def parse_options():
 
 def main():
     options = parse_options()
-    slideshow = Slideshow(options)
+    window = Window(options)
 
     app.run()
 
-    try:
-        open(options.save_file, "w").write(str(slideshow.index))
-    except IOError:
-        pass
+    #try:
+        #open(options.save_file, "w").write(str(slideshow.index))
+    #except IOError:
+        #pass
