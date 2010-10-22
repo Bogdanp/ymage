@@ -34,6 +34,7 @@ Keybidings
 * __f__: Toggle fullscreen mode
 * __i__: Jump to a slide
 * __p__: Print the path of the current image 
+* __e__: Jump to previous random slide
 * __r__: Jump to a random slide
 * __left arrow__: Previous slide
 * __right arrrow__: Next slide
