@@ -27,7 +27,7 @@ from ymage.gui import Window
 from ymage.helpers import get_paths
 
 USAGE="usage: %prog [OPTIONS] PATH"
-VERSION="%prog 0.8"
+VERSION="%prog 1.0"
 
 def parse_options():
     parser = OptionParser(usage=USAGE, version=VERSION)

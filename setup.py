@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name="ymage",
-    version="0.7",
+    version="1.0",
     description="Simple slideshow creator",
     author="Bogdan Popa",
     author_email="popa.bogdanp@gmail.com",
