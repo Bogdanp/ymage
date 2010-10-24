@@ -80,13 +80,17 @@ class Reader(object):
             else:
                 self.input += representation.lower()
 
-        self.printer._print(self.message + self.input + "_")
+        self.printer._print(
+            "%s: %s_" % (self.message, self.input)
+        )
 
     def start_reading(self, message, callback):
         self.callback = callback
         self.message = message
         self.input = ""
-        self.printer._print(self.message + "_")
+        self.printer._print(
+            "%s: _" % self.message
+        )
         self.toggle_reading()
 
     def toggle_reading(self):
@@ -110,13 +114,13 @@ class Window(window.Window):
 
     def search(self, query=None):
         if query is None:
-            self.reader.start_reading("Search for: ", self.search)
+            self.reader.start_reading("Search for", self.search)
         else:
             self.slideshow.display(action="search", query=query)
 
     def jump(self, index=None):
         if index is None:
-            self.reader.start_reading("Slide: ", self.jump)
+            self.reader.start_reading("Slide", self.jump)
         else:
             self.slideshow.display(action="jump", index=index)
 
@@ -150,10 +154,10 @@ class Window(window.Window):
 
         try:
             {
-                window.key.D: lambda: self.reader.start_reading("Duration: ", self.slideshow.set_duration),
                 window.key.P: lambda: self.printer._print(self.slideshow.get_current()),
                 window.key.R: lambda: self.slideshow.display(action="random", previous=False),
                 window.key.E: lambda: self.slideshow.display(action="random", previous=True),
+                window.key.D: lambda: self.reader.start_reading("Duration", self.slideshow.set_duration),
                 window.key.UP: lambda: self.printer._print("Duration: " + self.slideshow.increase_duration()),
                 window.key.DOWN: lambda: self.printer._print("Duration: " + self.slideshow.decrease_duration()),
                 window.key.LEFT: lambda: self.slideshow.display(action="prev"),

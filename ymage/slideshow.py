@@ -27,24 +27,28 @@ from ymage.helpers import reschedule, reschedule_once
 class Slideshow(object):
     def __init__(self, options):
         self.options = options
-        self.slide = None
         self.setup()
         self.display(action="none")
 
     def setup(self):
-        if self.options.last_index:
-            try:
+        try:
+            if self.options.last_index:
                 self.index = int(open(self.options.save_file).read())
-            except (IOError, ValueError):
-                self.index = 0
-        else:
-            self.index = self.options.index - 1
+            else:
+                self.index = int(self.options.index) - 1
+        except (IOError, ValueError):
+            self.index = 0
 
-        self.options.duration = float(self.options.duration)
+        try:
+            self.options.duration = float(self.options.duration)
+        except ValueError:
+            self.options.duration = 5
+
         self.options.paused = False
         self.randoms = []
         self.rindex = 0
         self.slides = self.options.paths
+        self.slide = None
 
     def get_current(self):
         return self.slides[self.index]
@@ -136,6 +140,7 @@ class Slideshow(object):
 
         padding_left = (window_width - image_width) / 2
         padding_bottom = (window_height - image_height) / 2
+
         self.slide.blit(
             padding_left, padding_bottom, 0,
             image_width, image_height
