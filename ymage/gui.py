@@ -134,7 +134,7 @@ class Window(window.Window):
         self.clear()
 
         try:
-            self.slideshow.get_current().draw(self.width, self.height)
+            self.slideshow.draw_slide(self.width, self.height)
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next
@@ -151,7 +151,7 @@ class Window(window.Window):
         try:
             {
                 window.key.D: lambda: self.reader.start_reading("Duration: ", self.slideshow.set_duration),
-                window.key.P: lambda: self.printer._print(self.slideshow.get_current().path),
+                window.key.P: lambda: self.printer._print(self.slideshow.get_current()),
                 window.key.R: lambda: self.slideshow.display(action="random", previous=False),
                 window.key.E: lambda: self.slideshow.display(action="random", previous=True),
                 window.key.UP: lambda: self.printer._print("Duration: " + self.slideshow.increase_duration()),

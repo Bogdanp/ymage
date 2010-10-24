@@ -24,43 +24,14 @@ from random import randint
 
 from ymage.helpers import reschedule, reschedule_once
 
-class Slide(object):
-    def __init__(self, path):
-        self.image = None
-        self.path = path
-
-    def draw(self, window_width, window_height):
-        if self.image is None:
-            self.image = image.load(self.path)
-
-        image_ratio = self.image.width / self.image.height
-        window_ratio = window_width / window_height
-
-        if image_ratio > window_ratio:
-            image_width = window_width
-            image_height = window_width / image_ratio
-        else:
-            image_width = window_height * image_ratio
-            image_height = window_height
-
-        padding_left = (window_width - image_width) / 2
-        padding_bottom = (window_height - image_height) / 2
-        self.image.blit(
-            padding_left, padding_bottom, 0,
-            image_width, image_height
-        )
-
 class Slideshow(object):
     def __init__(self, options):
         self.options = options
-        self.slides = []
+        self.slide = None
         self.setup()
         self.display(action="none")
 
     def setup(self):
-        for path in self.options.paths:
-            self.slides.append(Slide(path))
-
         if self.options.last_index:
             try:
                 self.index = int(open(self.options.save_file).read())
@@ -73,6 +44,7 @@ class Slideshow(object):
         self.options.paused = False
         self.randoms = []
         self.rindex = 0
+        self.slides = self.options.paths
 
     def get_current(self):
         return self.slides[self.index]
@@ -83,18 +55,18 @@ class Slideshow(object):
         if self.options.duration < 0:
             self.options.duration = 0
 
-        self.display(action="none")
+        self.display(action="reschedule")
         return str(self.options.duration)
 
     def increase_duration(self):
         self.options.duration += 0.5
-        self.display(action="none")
+        self.display(action="reschedule")
         return str(self.options.duration)
 
     def set_duration(self, n):
         try:
             self.options.duration = abs(float(n))
-            self.display(action="none")
+            self.display(action="reschedule")
         except ValueError:
             pass
 
@@ -140,7 +112,7 @@ class Slideshow(object):
 
     def search(self, query):
         for i, slide in enumerate(self.slides):
-            if slide.path.lower().find(query) != -1:
+            if slide.lower().find(query) != -1:
                 self.index = i
                 return
 
@@ -151,19 +123,43 @@ class Slideshow(object):
         except IOError:
             pass
 
+    def draw_slide(self, window_width, window_height):
+        image_ratio = self.slide.width / self.slide.height
+        window_ratio = window_width / window_height
+
+        if image_ratio > window_ratio:
+            image_width = window_width
+            image_height = window_width / image_ratio
+        else:
+            image_width = window_height * image_ratio
+            image_height = window_height
+
+        padding_left = (window_width - image_width) / 2
+        padding_bottom = (window_height - image_height) / 2
+        self.slide.blit(
+            padding_left, padding_bottom, 0,
+            image_width, image_height
+        )
+
     def display(self, dt=None, action="next", *args, **kwargs):
         if not self.options.paused or dt is None:
             # dt == None => we got here by way of
             # a key press and not the clock so it's
             # okay to switch to a different slide
-            {
-                "prev": self.prev,
-                "next": self.next,
-                "jump": lambda: self.jump(kwargs["index"]),
-                "none": lambda: None,
-                "random": lambda: self.random(kwargs["previous"]),
-                "search": lambda: self.search(kwargs["query"]),
-            }[action]()
+            try:
+                {
+                    "prev": self.prev,
+                    "next": self.next,
+                    "jump": lambda: self.jump(kwargs["index"]),
+                    "none": lambda: None,
+                    "random": lambda: self.random(kwargs["previous"]),
+                    "search": lambda: self.search(kwargs["query"]),
+                }[action]()
+            except KeyError:
+                pass
 
-        self.save_last()
+        if action != "reschedule":
+            self.save_last()
+            self.slide = image.load(self.slides[self.index])
+
         reschedule(self.display, self.options.duration)
