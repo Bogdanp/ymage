@@ -1,1 +1,3 @@
-__all__ = ["ymage", "gui"]
+__all__ = [
+    "gui", "helpers", "slideshow"
+]

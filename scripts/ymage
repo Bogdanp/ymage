@@ -1,4 +1,80 @@
 #!/usr/bin/env python
-from ymage import ymage
+# Copyright (c) 2010 Bogdan Popa
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+import os
+import sys
 
-ymage.main()
+from optparse import OptionParser
+from pyglet import app
+from ymage.gui import Window
+from ymage.helpers import get_paths
+
+USAGE="usage: %prog [OPTIONS] PATH"
+VERSION="%prog 0.8"
+
+def parse_options():
+    parser = OptionParser(usage=USAGE, version=VERSION)
+    parser.add_option(
+        "-d", "--duration",
+        help="the duration of a single slide [default: %default]",
+        dest="duration",
+    )
+    parser.add_option(
+        "-i", "--index",
+        help="start with slide number INDEX [default: %default]",
+        dest="index",
+    )
+    parser.add_option(
+        "-l", "--last-index",
+        help="start with the slide last viewed in PATH",
+        dest="last_index", action="store_true",
+    )
+    parser.add_option(
+        "-w", "--windowed",
+        help="start ymage in windowed mode",
+        dest="windowed", action="store_true",
+    )
+    parser.set_defaults(
+        duration=5, index=1,
+        last_index=False,
+        windowed=False,
+    )
+
+    options, args = parser.parse_args()
+
+    try:
+        options.path = args[0]
+        options.save_file = os.path.join(args[0], ".ymage")
+    except IndexError:
+        parser.error("you must specify a PATH")
+
+    options.paths = get_paths(options.path)
+
+    if not options.paths:
+        parser.error("PATH contains no images")
+
+    return options
+
+def main(args):
+    window = Window(parse_options())
+    return app.run()
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
