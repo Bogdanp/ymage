@@ -18,12 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 from pyglet import app, gl, text, window
+from string import ascii_lowercase, digits
 
 from ymage.helpers import reschedule, reschedule_once
 from ymage.slideshow import Slideshow
-
-# List of characters from 0 to 9 and A to Z
-ALPHANUM = [chr(c) for c in range(48, 58)] + [chr(c) for c in range(65, 91)]
 
 class Printer(text.Label):
     def __init__(self):
@@ -45,7 +43,7 @@ class Reader(object):
         self.callback = None
         self.printer = printer
         self.message = ""
-        self.input = ""
+        self._input = ""
 
     def read(self, symbol, modifiers):
         self.is_reading = True
@@ -53,17 +51,17 @@ class Reader(object):
         if symbol == window.key.RETURN:
             self.printer.clear()
             self.toggle_reading()
-            self.callback(self.input)
+            self.callback(self._input)
             return
         elif symbol == window.key.ESCAPE:
             self.printer.clear()
             self.toggle_reading()
             return
         elif symbol == window.key.BACKSPACE:
-            self.input = self.input[:-1]
+            self._input = self._input[:-1]
 
         try:
-            self.input += {
+            self._input += {
                 window.key.PERIOD: ".",
                 window.key.MINUS: "-",
                 window.key.SPACE: " ",
@@ -74,20 +72,20 @@ class Reader(object):
         representation = window.key.symbol_string(symbol)
         representation = representation.replace("_", "")
 
-        if representation in ALPHANUM:
+        if representation in (ascii_lowercase + digits):
             if modifiers & window.key.MOD_SHIFT:
-                self.input += representation
+                self._input += representation
             else:
-                self.input += representation.lower()
+                self._input += representation.lower()
 
         self.printer._print(
-            "%s: %s_" % (self.message, self.input)
+            "%s: %s_" % (self.message, self._input)
         )
 
     def start_reading(self, message, callback):
         self.callback = callback
         self.message = message
-        self.input = ""
+        self._input = ""
         self.printer._print(
             "%s: _" % self.message
         )
