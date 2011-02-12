@@ -1,4 +1,4 @@
-# Copyright (c) 2010 Bogdan Popa
+# Copyright (c) 2011 Bogdan Popa
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,17 +33,16 @@ class Slideshow(object):
     def setup(self):
         try:
             if self.options.last_index:
-                self.index = int(open(self.options.save_file).read())
+                with open(self.options.save_file) as file_:
+                    self.index = int(file_.read())
             else:
                 self.index = int(self.options.index) - 1
         except (IOError, ValueError):
             self.index = 0
-
         try:
             self.options.duration = float(self.options.duration)
         except ValueError:
             self.options.duration = 5
-
         self.options.paused = False
         self.randoms = []
         self.rindex = 0
@@ -55,10 +54,8 @@ class Slideshow(object):
 
     def decrease_duration(self):
         self.options.duration -= 0.5
-
         if self.options.duration < 0:
             self.options.duration = 0
-
         self.display(action="reschedule")
         return str(self.options.duration)
 
@@ -78,22 +75,19 @@ class Slideshow(object):
         self.options.paused = not self.options.paused
         return "Paused" if self.options.paused else "Unpaused"
 
-    def prev(self):
+    def previous(self):
         self.index -= 1
-
         if self.index < 0:
             self.index = len(self.slides) - 1
 
     def next(self):
         self.index += 1
-
         if self.index >= len(self.slides):
             self.index = 0
 
     def jump(self, index):
         try:
             index = int(index) - 1
-
             if index >= 0 and index < len(self.slides):
                 self.index = index
         except ValueError:
@@ -102,13 +96,11 @@ class Slideshow(object):
     def random(self, previous):
         if previous:
             self.rindex -= 1
-
             if self.rindex < 0:
                 self.rindex = len(self.randoms) - 1
         else:
             self.rindex = len(self.randoms)
             self.randoms.append(randint(0, len(self.slides) - 1))
-
         try:
             self.index = self.randoms[self.rindex]
         except IndexError:
@@ -127,23 +119,20 @@ class Slideshow(object):
         except IOError:
             pass
 
-    def draw_slide(self, window_width, window_height):
+    def draw_slide(self, window_w, window_h):
         image_ratio = self.slide.width / self.slide.height
-        window_ratio = window_width / window_height
-
+        window_ratio = window_w / window_h
         if image_ratio > window_ratio:
-            image_width = window_width
-            image_height = window_width / image_ratio
+            image_w = window_w
+            image_h = window_w / image_ratio
         else:
-            image_width = window_height * image_ratio
-            image_height = window_height
-
-        padding_left = (window_width - image_width) / 2
-        padding_bottom = (window_height - image_height) / 2
-
+            image_w = window_h * image_ratio
+            image_h = window_h
+        image_x = (window_w - image_w) / 2
+        image_y = (window_h - image_h) / 2
         self.slide.blit(
-            padding_left, padding_bottom, 0,
-            image_width, image_height
+            x=image_x, y=image_y,
+            width=image_w, height=image_h
         )
 
     def display(self, dt=None, action="next", *args, **kwargs):
@@ -151,9 +140,10 @@ class Slideshow(object):
             # dt == None => we got here by way of
             # a key press and not the clock so it's
             # okay to switch to a different slide
+            # when paused.
             try:
                 {
-                    "prev": self.prev,
+                    "previous": self.previous,
                     "next": self.next,
                     "jump": lambda: self.jump(kwargs["index"]),
                     "none": lambda: None,
@@ -162,9 +152,7 @@ class Slideshow(object):
                 }[action]()
             except KeyError:
                 pass
-
         if action != "reschedule":
             self.save_last()
             self.slide = image.load(self.slides[self.index])
-
         reschedule(self.display, self.options.duration)

@@ -1,4 +1,4 @@
-# Copyright (c) 2010 Bogdan Popa
+# Copyright (c) 2011 Bogdan Popa
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,13 +32,10 @@ def reschedule_once(callback, interval, *args, **kwargs):
 def get_paths(path):
     types = ["bmp", "jpg", "jpeg", "png"]
     paths = []
-
     for root, dirs, files in os.walk(path):
         for _file in files:
             for _type in types:
                 if _file.lower().endswith(_type):
                     paths.append(os.path.join(root, _file))
-                    # Save some cycles
                     break
-
     return sorted(paths)

@@ -1,4 +1,4 @@
-# Copyright (c) 2010 Bogdan Popa
+# Copyright (c) 2011 Bogdan Popa
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,6 @@ class Reader(object):
 
     def read(self, symbol, modifiers):
         self.is_reading = True
-
         if symbol == window.key.RETURN:
             self.printer.clear()
             self.toggle_reading()
@@ -59,7 +58,6 @@ class Reader(object):
             return
         elif symbol == window.key.BACKSPACE:
             self._input = self._input[:-1]
-
         try:
             self._input += {
                 window.key.PERIOD: ".",
@@ -68,10 +66,8 @@ class Reader(object):
             }[symbol]
         except KeyError:
             pass
-
         representation = window.key.symbol_string(symbol)
         representation = representation.replace("_", "")
-
         if representation in (ascii_lowercase + digits):
             if modifiers & window.key.MOD_SHIFT:
                 self._input += representation
@@ -99,7 +95,6 @@ class Window(window.Window):
         super(Window, self).__init__(
             800, 600, "Loading...", True, None, False
         )
-
         self.slideshow = Slideshow(options)
         self.options = options
         self.printer = Printer()
@@ -109,18 +104,6 @@ class Window(window.Window):
     def setup(self):
         if not self.options.windowed:
             self.toggle_fullscreen()
-
-    def search(self, query=None):
-        if query is None:
-            self.reader.start_reading("Search for", self.search)
-        else:
-            self.slideshow.display(action="search", query=query)
-
-    def jump(self, index=None):
-        if index is None:
-            self.reader.start_reading("Slide", self.jump)
-        else:
-            self.slideshow.display(action="jump", index=index)
 
     def toggle_fullscreen(self):
         self.activate()
@@ -132,16 +115,66 @@ class Window(window.Window):
             self.slideshow.index + 1, len(self.slideshow.slides)
         ))
 
+    # Actions
+    def _set_duration(self):
+        self.reader.start_reading(
+            "Duration", self.slideshow.set_duration
+        )
+
+    def _increase_duration(self):
+        self.printer._print("Duration: {}".format(
+            self.slideshow.increase_duration()
+        ))
+
+    def _decrease_duration(self):
+        self.printer._print("Duration: {}".format(
+            self.slideshow.decrease_duration()
+        ))
+
+    def _previous_slide(self):
+        self.slideshow.display(action="previous")
+
+    def _next_slide(self):
+        self.slideshow.display(action="next")
+
+    def _toggle_paused(self):
+        self.printer._print(
+            self.slideshow.toggle_paused()
+        )
+
+    def _random(self):
+        self.slideshow.display(action="random", previous=False)
+
+    def _previous_random(self):
+        self.slideshow.display(action="random", previous=True)
+
+    def _print_info(self):
+        self.printer._print("{} [{}/{}]".format(
+            self.slideshow.get_current(),
+            self.slideshow.index + 1,
+            len(self.slideshow.slides)
+        ))
+
+    def _search(self, query=None):
+        if query is None:
+            self.reader.start_reading("Search for", self.search)
+        else:
+            self.slideshow.display(action="search", query=query)
+
+    def _jump(self, index=None):
+        if index is None:
+            self.reader.start_reading("Slide", self.jump)
+        else:
+            self.slideshow.display(action="jump", index=index)
+
     def on_draw(self):
         self.clear()
-
         try:
             self.slideshow.draw_slide(self.width, self.height)
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next
             self.slideshow.display()
-
         self.update_caption()
         self.printer.draw()
 
@@ -149,21 +182,20 @@ class Window(window.Window):
         if self.reader.is_reading:
             self.reader.read(symbol, modifiers)
             return
-
         try:
             {
-                window.key.P: lambda: self.printer._print(self.slideshow.get_current()),
-                window.key.R: lambda: self.slideshow.display(action="random", previous=False),
-                window.key.E: lambda: self.slideshow.display(action="random", previous=True),
-                window.key.D: lambda: self.reader.start_reading("Duration", self.slideshow.set_duration),
-                window.key.UP: lambda: self.printer._print("Duration: " + self.slideshow.increase_duration()),
-                window.key.DOWN: lambda: self.printer._print("Duration: " + self.slideshow.decrease_duration()),
-                window.key.LEFT: lambda: self.slideshow.display(action="prev"),
-                window.key.RIGHT: lambda: self.slideshow.display(action="next"),
-                window.key.SPACE: lambda: self.printer._print(self.slideshow.toggle_paused()),
-                window.key.I: self.jump,
+                window.key.P: self._print_info,
+                window.key.R: self._random,
+                window.key.E: self._previous_random,
+                window.key.D: self._set_duration,
+                window.key.UP: self._increase_duration,
+                window.key.DOWN: self._decrease_duration,
+                window.key.LEFT: self._previous_slide,
+                window.key.RIGHT: self._next_slide,
+                window.key.SPACE: self._toggle_paused,
+                window.key.I: self._jump,
                 window.key.F: self.toggle_fullscreen,
-                window.key.SLASH: self.search,
+                window.key.SLASH: self._search,
                 window.key.ESCAPE: app.exit,
             }[symbol]()
         except KeyError:
