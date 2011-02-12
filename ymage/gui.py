@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 from pyglet import app, gl, text, window
-from string import ascii_lowercase, digits
+from string import ascii_letters, digits
 
 from ymage.helpers import reschedule, reschedule_once
 from ymage.slideshow import Slideshow
@@ -68,12 +68,11 @@ class Reader(object):
             pass
         representation = window.key.symbol_string(symbol)
         representation = representation.replace("_", "")
-        if representation in (ascii_lowercase + digits):
+        if representation in ascii_letters + digits:
             if modifiers & window.key.MOD_SHIFT:
                 self._input += representation
             else:
                 self._input += representation.lower()
-
         self.printer._print(
             "%s: %s_" % (self.message, self._input)
         )
@@ -157,13 +156,13 @@ class Window(window.Window):
 
     def _search(self, query=None):
         if query is None:
-            self.reader.start_reading("Search for", self.search)
+            self.reader.start_reading("Search for", self._search)
         else:
             self.slideshow.display(action="search", query=query)
 
     def _jump(self, index=None):
         if index is None:
-            self.reader.start_reading("Slide", self.jump)
+            self.reader.start_reading("Slide", self._jump)
         else:
             self.slideshow.display(action="jump", index=index)
 
