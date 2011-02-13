@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from pyglet import app, gl, text, window
+from pyglet import app, gl, graphics, text, window
 from string import ascii_letters, digits
 
 from ymage.helpers import reschedule, reschedule_once
@@ -26,9 +26,18 @@ from ymage.slideshow import Slideshow
 class Printer(text.Label):
     def __init__(self):
         super(Printer, self).__init__(
-            "", "Arial", 12, False, False,
-            (0, 255, 0, 255), 10, 10
+            "", "monospace", 9, False, False,
+            (0, 0, 0, 255), 10, 10
         )
+
+    def draw(self):
+        if self.text:
+            width, height = len(self.text) * 7 + 20, 30
+            graphics.draw(4, gl.GL_QUADS,
+                ("v2f", (0, 0, 0, height, width, height, width, 0)),
+                ("c4f", (1, 1, 1, 1) * 4)
+            )
+        super(Printer, self).draw()
 
     def _print(self, message, duration=5):
         self.text = message
@@ -195,6 +204,7 @@ class Window(window.Window):
                 window.key.I: self._jump,
                 window.key.F: self.toggle_fullscreen,
                 window.key.SLASH: self._search,
+                window.key.RETURN: app.exit,
                 window.key.ESCAPE: app.exit,
             }[symbol]()
         except KeyError:
