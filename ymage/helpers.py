@@ -29,13 +29,21 @@ def reschedule_once(callback, interval, *args, **kwargs):
     clock.unschedule(callback)
     clock.schedule_once(callback, interval, *args, **kwargs)
 
-def get_paths(path):
-    types = ["bmp", "jpg", "jpeg", "png"]
-    paths = []
+def valid_type(file_):
+    types = ("bmp", "jpg", "jpeg", "png")
+    for type_ in types:
+        if file_.lower().endswith(type_):
+            return True
+    return False
+
+def get_files(path):
     for root, dirs, files in os.walk(path):
-        for _file in files:
-            for _type in types:
-                if _file.lower().endswith(_type):
-                    paths.append(os.path.join(root, _file))
-                    break
+        for file_ in files:
+            if valid_type(file_):
+                yield os.path.join(root, file_)
+
+def get_paths(path):
+    paths = []
+    for file_ in get_files(path):
+        paths.append(file_)
     return sorted(paths)

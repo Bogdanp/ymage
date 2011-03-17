@@ -50,7 +50,7 @@ class Slideshow(object):
         self.slide = None
 
     def get_current(self):
-        return self.slides[self.index]
+        return unicode(self.slides[self.index], "utf-8")
 
     def decrease_duration(self):
         self.options.duration -= 0.5
