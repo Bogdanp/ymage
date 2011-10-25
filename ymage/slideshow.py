@@ -47,7 +47,6 @@ class Slideshow(object):
         self.randoms = []
         self.rindex = 0
         self.slides = self.options.paths
-        self.slide = None
         self.slideCache = {}
         self.slideCacheLRU = []
 
@@ -121,8 +120,15 @@ class Slideshow(object):
         except IOError:
             pass
 
-    def draw_slide(self, window_w, window_h):
-        image_ratio = self.slide.width / self.slide.height
+    def draw_slide(self, window_w, window_h, index = -1):
+        if index < 0:
+            index = self.index
+        if index not in self.slideCache.keys():
+            # we are in fast path, so no loading allowed. 
+            # Better to skip paint and remain quick
+            return
+        slide = self.slideCache[index]
+        image_ratio = slide.width / slide.height
         window_ratio = window_w / window_h
         if image_ratio > window_ratio:
             image_w = window_w
@@ -132,7 +138,7 @@ class Slideshow(object):
             image_h = window_h
         image_x = (window_w - image_w) / 2
         image_y = (window_h - image_h) / 2
-        self.slide.blit(
+        slide.blit(
             x=image_x, y=image_y,
             width=image_w, height=image_h
         )
@@ -156,17 +162,16 @@ class Slideshow(object):
                 pass
         if action != "reschedule":
             self.save_last()
-            self.loadSLide(self.index)
+            self.loadSlide(self.index)
         reschedule(self.display, self.options.duration)
         
-    def loadSLide(self, index):
+    def loadSlide(self, index):
         if index not in self.slideCache.keys():
             if len(self.slideCache) > 3:
                 delIndex = self.slideCacheLRU.pop()
                 del self.slideCache[delIndex]
             self.slideCache[index] = image.load(self.slides[self.index])
             
-        self.slide = self.slideCache[index]
         if index in self.slideCacheLRU:
             self.slideCacheLRU.remove(index)
         self.slideCacheLRU.insert(0, index)
