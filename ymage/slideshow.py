@@ -48,6 +48,8 @@ class Slideshow(object):
         self.rindex = 0
         self.slides = self.options.paths
         self.slide = None
+        self.slideCache = {}
+        self.slideCacheLRU = []
 
     def get_current(self):
         return unicode(self.slides[self.index], "utf-8")
@@ -154,5 +156,17 @@ class Slideshow(object):
                 pass
         if action != "reschedule":
             self.save_last()
-            self.slide = image.load(self.slides[self.index])
+            self.loadSLide(self.index)
         reschedule(self.display, self.options.duration)
+        
+    def loadSLide(self, index):
+        if index not in self.slideCache.keys():
+            if len(self.slideCache) > 3:
+                delIndex = self.slideCacheLRU.pop()
+                del self.slideCache[delIndex]
+            self.slideCache[index] = image.load(self.slides[self.index])
+            
+        self.slide = self.slideCache[index]
+        if index in self.slideCacheLRU:
+            self.slideCacheLRU.remove(index)
+        self.slideCacheLRU.insert(0, index)
