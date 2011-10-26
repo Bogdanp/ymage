@@ -22,12 +22,15 @@ from __future__ import division
 from pyglet import image
 from random import randint
 
-from ymage.helpers import reschedule, reschedule_once
+from ymage.helpers import reschedule
+from ymage.transtition import Transition
 
 class Slideshow(object):
     def __init__(self, options):
         self.options = options
         self.setup()
+        self.transition = Transition.create(self)
+        self.transition.setup()
         self.display(action="none")
 
     def setup(self):
@@ -120,12 +123,18 @@ class Slideshow(object):
         except IOError:
             pass
 
+    def draw(self, window_w, window_h):
+        if self.transition.in_transition():
+            self.transition.draw(window_w, window_h)
+        else:
+            self.draw_slide(window_w, window_h)
+        
     def draw_slide(self, window_w, window_h, index = -1):
         if index < 0:
             index = self.index
+        # we are in fast path, so no loading allowed. 
+        # Better to skip paint but remain quick
         if index not in self.slideCache.keys():
-            # we are in fast path, so no loading allowed. 
-            # Better to skip paint and remain quick
             return
         slide = self.slideCache[index]
         image_ratio = slide.width / slide.height
@@ -144,6 +153,7 @@ class Slideshow(object):
         )
 
     def display(self, dt=None, action="next", *args, **kwargs):
+        curr_index = self.index
         if not self.options.paused or dt is None:
             # dt == None => we got here by way of
             # a key press and not the clock so it's
@@ -162,15 +172,19 @@ class Slideshow(object):
                 pass
         if action != "reschedule":
             self.save_last()
-            self.loadSlide(self.index)
+            self.load_slide(self.index)
+        if curr_index != self.index:
+            self.transition.add_transition(curr_index, self.index)
         reschedule(self.display, self.options.duration)
         
-    def loadSlide(self, index):
+    def load_slide(self, index):
         if index not in self.slideCache.keys():
             if len(self.slideCache) > 3:
                 delIndex = self.slideCacheLRU.pop()
                 del self.slideCache[delIndex]
-            self.slideCache[index] = image.load(self.slides[self.index])
+            # convert image directly into texture => transfer into GPU
+            # this does not delay first draw of image
+            self.slideCache[index] = image.load(self.slides[self.index]).get_texture()
             
         if index in self.slideCacheLRU:
             self.slideCacheLRU.remove(index)
