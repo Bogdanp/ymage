@@ -23,7 +23,7 @@ from pyglet import image
 from random import randint
 
 from ymage.helpers import reschedule
-from ymage.transtition import Transition
+from ymage.transition import Transition
 
 class Slideshow(object):
     def __init__(self, options):

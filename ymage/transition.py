@@ -20,42 +20,43 @@
 from pyglet import gl, clock
 
 class Transition(object):
+    transitions = {
+                   "simple" : "TransitionSimple",
+                   "blend" : "TransitionBlend"
+                   }
     @classmethod
     def create(self, slideshow):
         trans_class = TransitionSimple
         try:
-            trans_class = {
-                     "simple" : TransitionSimple,
-                     "blend" : TransitionBlend
-            }[slideshow.options.transition]
+            trans_class = globals()[self.transitions[slideshow.options.transition]]
         except KeyError:
             pass
         return trans_class(slideshow)
     
     def __init__(self, slideshow):
         self.slideshow = slideshow
-        self.transitions = []
+        self.queue = []
         
     def setup(self):
         pass
         
     def in_transition(self):
-        for index, transition in enumerate(self.transitions):
+        for index, transition in enumerate(self.queue):
             if transition["phase"] == 0:
-                del self.transitions[index]
+                del self.queue[index]
                 
-        if len(self.transitions) <= 0:
+        if len(self.queue) <= 0:
             clock.unschedule(self.tick)
                 
-        return len(self.transitions) > 0
+        return len(self.queue) > 0
     
     def add_transition(self, previous, next):
-        self.transitions.append({"previous":previous, "next":next, "phase":1.})
+        self.queue.append({"previous":previous, "next":next, "phase":1.})
         clock.schedule_interval(self.tick, 1.0/30)
         
     def tick(self, dt):
-        self.transitions[0]["phase"] -= dt / self.slideshow.options.transition_duration
-        self.transitions[0]["phase"] = max([0, self.transitions[0]["phase"]])
+        self.queue[0]["phase"] -= dt / self.slideshow.options.transition_duration
+        self.queue[0]["phase"] = max([0, self.queue[0]["phase"]])
         
     def draw(self, width, height):
         pass
@@ -77,7 +78,7 @@ class TransitionBlend(Transition):
         gl.glBlendColor(0.0, 0.0, 0.0, 1.0)
         
     def draw(self, width, height):
-        transition = self.transitions[0]
+        transition = self.queue[0]
         gl.glBlendColor(0.0, 0.0, 0.0, transition["phase"])
         self.slideshow.draw_slide(width, height, transition["previous"])
         gl.glBlendColor(0.0, 0.0, 0.0, 1.0-transition["phase"])
