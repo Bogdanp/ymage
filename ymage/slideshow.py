@@ -22,12 +22,15 @@ from __future__ import division
 from pyglet import image
 from random import randint
 
-from ymage.helpers import reschedule, reschedule_once
+from ymage.helpers import reschedule
+from ymage.transition import Transition
 
 class Slideshow(object):
     def __init__(self, options):
         self.options = options
         self.setup()
+        self.transition = Transition.create(self)
+        self.transition.setup()
         self.display(action="none")
 
     def setup(self):
@@ -47,7 +50,8 @@ class Slideshow(object):
         self.randoms = []
         self.rindex = 0
         self.slides = self.options.paths
-        self.slide = None
+        self.slideCache = {}
+        self.slideCacheLRU = []
 
     def get_current(self):
         return unicode(self.slides[self.index], "utf-8")
@@ -119,8 +123,21 @@ class Slideshow(object):
         except IOError:
             pass
 
-    def draw_slide(self, window_w, window_h):
-        image_ratio = self.slide.width / self.slide.height
+    def draw(self, window_w, window_h):
+        if self.transition.in_transition():
+            self.transition.draw(window_w, window_h)
+        else:
+            self.draw_slide(window_w, window_h)
+        
+    def draw_slide(self, window_w, window_h, index = -1):
+        if index < 0:
+            index = self.index
+        # we are in fast path, so no loading allowed. 
+        # Better to skip paint but remain quick
+        if index not in self.slideCache.keys():
+            return
+        slide = self.slideCache[index]
+        image_ratio = slide.width / slide.height
         window_ratio = window_w / window_h
         if image_ratio > window_ratio:
             image_w = window_w
@@ -130,12 +147,13 @@ class Slideshow(object):
             image_h = window_h
         image_x = (window_w - image_w) / 2
         image_y = (window_h - image_h) / 2
-        self.slide.blit(
+        slide.blit(
             x=image_x, y=image_y,
             width=image_w, height=image_h
         )
 
     def display(self, dt=None, action="next", *args, **kwargs):
+        curr_index = self.index
         if not self.options.paused or dt is None:
             # dt == None => we got here by way of
             # a key press and not the clock so it's
@@ -154,5 +172,20 @@ class Slideshow(object):
                 pass
         if action != "reschedule":
             self.save_last()
-            self.slide = image.load(self.slides[self.index])
+            self.load_slide(self.index)
+        if curr_index != self.index:
+            self.transition.add_transition(curr_index, self.index)
         reschedule(self.display, self.options.duration)
+        
+    def load_slide(self, index):
+        if index not in self.slideCache.keys():
+            if len(self.slideCache) > 3:
+                delIndex = self.slideCacheLRU.pop()
+                del self.slideCache[delIndex]
+            # convert image directly into texture => transfer into GPU
+            # this does not delay first draw of image
+            self.slideCache[index] = image.load(self.slides[self.index]).get_texture()
+            
+        if index in self.slideCacheLRU:
+            self.slideCacheLRU.remove(index)
+        self.slideCacheLRU.insert(0, index)

@@ -1,3 +1,3 @@
 __all__ = [
-    "gui", "helpers", "slideshow"
+    "gui", "helpers", "slideshow", "transition"
 ]

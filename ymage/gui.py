@@ -20,7 +20,7 @@
 from pyglet import app, gl, graphics, text, window
 from string import ascii_letters, digits
 
-from ymage.helpers import reschedule, reschedule_once
+from ymage.helpers import reschedule_once
 from ymage.slideshow import Slideshow
 
 class Printer(text.Label):
@@ -178,7 +178,7 @@ class Window(window.Window):
     def on_draw(self):
         self.clear()
         try:
-            self.slideshow.draw_slide(self.width, self.height)
+            self.slideshow.draw(self.width, self.height)  
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next

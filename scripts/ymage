@@ -24,6 +24,7 @@ import sys
 from optparse import OptionParser
 from pyglet import app
 from ymage.gui import Window
+from ymage.transition import Transition
 from ymage.helpers import get_paths
 
 USAGE="usage: %prog [OPTIONS] PATH"
@@ -51,10 +52,22 @@ def parse_options():
         help="start ymage in windowed mode",
         dest="windowed", action="store_true",
     )
+    parser.add_option(
+        "-t", "--transition",
+        help="effect for transitions between slides [options: "+", ".join(Transition.transitions.keys())+"; default: %default]",
+        dest="transition",
+    )
+    parser.add_option(
+        "-s", "--transition-duration",
+        help="duration of transitions between slides [default: %default]",
+        dest="transition_duration", type="float",
+    )
     parser.set_defaults(
         duration=5, index=1,
         last_index=False,
         windowed=False,
+        transition="simple",
+        transition_duration=1,
     )
 
     options, args = parser.parse_args()
