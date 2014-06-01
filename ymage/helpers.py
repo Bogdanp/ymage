@@ -30,7 +30,7 @@ def reschedule_once(callback, interval, *args, **kwargs):
     clock.schedule_once(callback, interval, *args, **kwargs)
 
 def valid_type(file_):
-    types = ("bmp", "jpg", "jpeg", "png")
+    types = ("bmp", "jpg", "jpeg", "png", "tif", "tiff")
     for type_ in types:
         if file_.lower().endswith(type_):
             return True
