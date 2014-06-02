@@ -1,15 +1,15 @@
-# Copyright (c) 2011 Bogdan Popa
-# 
+# Copyright (c) 2014 Bogdan Popa
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,7 @@ from string import ascii_letters, digits
 from ymage.helpers import reschedule_once
 from ymage.slideshow import Slideshow
 
+
 class Printer(text.Label):
     def __init__(self):
         super(Printer, self).__init__(
@@ -34,9 +35,8 @@ class Printer(text.Label):
         if self.text:
             width, height = len(self.text) * 7 + 20, 30
             graphics.draw(4, gl.GL_QUADS,
-                ("v2f", (0, 0, 0, height, width, height, width, 0)),
-                ("c4f", (1, 1, 1, 1) * 4)
-            )
+                          ("v2f", (0, 0, 0, height, width, height, width, 0)),
+                          ("c4f", (1, 1, 1, 1) * 4))
         super(Printer, self).draw()
 
     def _print(self, message, duration=5):
@@ -45,6 +45,7 @@ class Printer(text.Label):
 
     def clear(self, dt=None):
         self.text = ""
+
 
 class Reader(object):
     def __init__(self, printer):
@@ -97,6 +98,7 @@ class Reader(object):
 
     def toggle_reading(self):
         self.is_reading = not self.is_reading
+
 
 class Window(window.Window):
     def __init__(self, options):
@@ -178,7 +180,7 @@ class Window(window.Window):
     def on_draw(self):
         self.clear()
         try:
-            self.slideshow.draw(self.width, self.height)  
+            self.slideshow.draw(self.width, self.height)
         except gl.lib.GLException:
             # In case one of the slides is corrupted
             # move on to the next

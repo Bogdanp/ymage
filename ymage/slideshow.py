@@ -1,15 +1,15 @@
-# Copyright (c) 2011 Bogdan Popa
-# 
+# Copyright (c) 2014 Bogdan Popa
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,6 +24,7 @@ from random import randint
 
 from ymage.helpers import reschedule
 from ymage.transition import Transition
+
 
 class Slideshow(object):
     def __init__(self, options):
@@ -50,8 +51,8 @@ class Slideshow(object):
         self.randoms = []
         self.rindex = 0
         self.slides = self.options.paths
-        self.slideCache = {}
-        self.slideCacheLRU = []
+        self.slide_cache = {}
+        self.slide_cache_LRU = []
 
     def get_current(self):
         return unicode(self.slides[self.index], "utf-8")
@@ -128,15 +129,15 @@ class Slideshow(object):
             self.transition.draw(window_w, window_h)
         else:
             self.draw_slide(window_w, window_h)
-        
-    def draw_slide(self, window_w, window_h, index = -1):
+
+    def draw_slide(self, window_w, window_h, index=-1):
         if index < 0:
             index = self.index
-        # we are in fast path, so no loading allowed. 
+        # we are in fast path, so no loading allowed.
         # Better to skip paint but remain quick
-        if index not in self.slideCache.keys():
+        if index not in self.slide_cache.keys():
             return
-        slide = self.slideCache[index]
+        slide = self.slide_cache[index]
         image_ratio = slide.width / slide.height
         window_ratio = window_w / window_h
         if image_ratio > window_ratio:
@@ -176,16 +177,16 @@ class Slideshow(object):
         if curr_index != self.index:
             self.transition.add_transition(curr_index, self.index)
         reschedule(self.display, self.options.duration)
-        
+
     def load_slide(self, index):
-        if index not in self.slideCache.keys():
-            if len(self.slideCache) > 3:
-                delIndex = self.slideCacheLRU.pop()
-                del self.slideCache[delIndex]
+        if index not in self.slide_cache.keys():
+            if len(self.slide_cache) > 3:
+                delIndex = self.slide_cache_LRU.pop()
+                del self.slide_cache[delIndex]
             # convert image directly into texture => transfer into GPU
             # this does not delay first draw of image
-            self.slideCache[index] = image.load(self.slides[self.index]).get_texture()
-            
-        if index in self.slideCacheLRU:
-            self.slideCacheLRU.remove(index)
-        self.slideCacheLRU.insert(0, index)
+            self.slide_cache[index] = image.load(self.slides[self.index]).get_texture()
+
+        if index in self.slide_cache_LRU:
+            self.slide_cache_LRU.remove(index)
+        self.slide_cache_LRU.insert(0, index)
