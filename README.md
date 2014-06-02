@@ -1,6 +1,6 @@
 ymage
 -----
-ymage is a simple image slideshow creator written in Python. Here's a [screenshot](http://imgur.com/hO9hB.jpg).
+ymage is a simple image slideshow creator written in Python. Here's a [screenshot](http://imgur.com/h3IHG.jpg).
 
 Requirements
 ------------
